@@ -3,6 +3,11 @@
 import rospy
 import numpy as np
 import os
+import csv
+import time
+
+from std_msgs.msg import Header
+from q_learning_project.msg import QLearningReward, QMatrix, QMatrixRow, RobotMoveDBToBlock
 
 # Path of directory on where this file is located
 path_prefix = os.path.dirname(__file__) + "/action_states/"
@@ -44,16 +49,21 @@ class QLearning(object):
         self.states = np.loadtxt(path_prefix + "states.txt")
         self.states = list(map(lambda x: list(map(lambda y: int(y), x)), self.states))
 
-        rospy.Subscriber("/q_learning/reward", QLearningReward, self.get_learning_reward)
+        rospy.Subscriber("/q_learning/reward", QLearningReward, self.get_reward)
 
         self.action_pub = rospy.Publisher("/q_learning/robot_action", RobotMoveDBToBlock, queue_size=10) 
         self.matrix_pub = rospy.Publisher("/q_learning/q_matrix", QMatrix, queue_size=10)
 
+        time.sleep(3)
+        self.alpha = 1
+        self.gamma = .5
         self.discount_factor = .8
         self.convergence_count = 0
 
         self.has_saved_matrix = False
+        self.q_matrix = [] 
         self.q_matrix_path = 'output/q_matrix.csv'
+        self.init_q_matrix()
 
         self.curr_state = 0
         self.next_state = 0
@@ -71,8 +81,6 @@ class QLearning(object):
         else:
             self.q_matrix = np.zeros([64, 9])
 
-
-
     def save_q_matrix(self):
         with open(self.q_matrix_path, 'w', newline='') as q_matrix_csv:
             writer = csv.writer(q_matrix_csv)
@@ -80,13 +88,16 @@ class QLearning(object):
                 writer.writerow(row)
 
     def do_action(self):
+        print("do_action start")
         options = self.action_matrix[self.curr_state]
         allowed_actions = []
-        
+        allowed_action_nums = []
+
         for i in range(len(options)):
             action_num = int(options[i])
             if action_num != -1:
-               allowed_actions.append((i, action_num)) 
+               allowed_actions.append(i) 
+               allowed_action_nums.append(action_num)
 
         if len(allowed_actions) == 0:
             # if self.use_saved_matrix: return
@@ -94,30 +105,39 @@ class QLearning(object):
             return self.do_action()
 
         # if self.use_saved_matrix etc.
-
-        self.next_state, self.curr_action = np.random.choice(allowed_actions)
+        index = np.random.choice(len(allowed_actions))
+        self.next_state = allowed_actions[index]
+        print(len(self.q_matrix))
+        print(self.next_state)
+        self.curr_action = allowed_action_nums[index]
 
         action_info = self.actions[self.curr_action]
         action = RobotMoveDBToBlock()
         action.robot_db = action_info['dumbbell']
         action.block_id = action_info['block']
         self.action_pub.publish(action)
+        print("do_action end")
 
     def get_reward(self, data):
+        print("get_reward start")
         reward = data.reward
         next_reward = max(self.q_matrix[self.next_state])
         
         current_reward = self.q_matrix[self.curr_state][self.curr_action]
-        new_reward = int(round(reward + self.discount_factor * next_reward))
-
+        new_reward = current_reward + self.alpha * (data.reward + self.gamma * next_reward - current_reward) 
+        print("printing reward")
+        print(data.reward)
+        print("printing con")
+        print(self.convergence_count)
         if current_reward == new_reward:
             self.convergence_count += 1
         elif self.convergence_count == 100:
-            self.save_q_matrix()
+            ## self.save_q_matrix()
+            print("@@@@@@@@matrix converged")
             return
         else:
             self.convergence_count = 0
-            self.q_matrix[self.curr_state][curr_action] = new_reward
+            self.q_matrix[self.curr_state][self.curr_action] = new_reward
 
             qm = QMatrix()
             temp = []
@@ -133,8 +153,10 @@ class QLearning(object):
 
         self.current_state = self.next_state
         self.do_action()
+        print("get_reward end")
 
     def run(self):
+        print("run")
         rospy.spin()
 
 if __name__ == "__main__":
