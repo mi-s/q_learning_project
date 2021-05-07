@@ -38,7 +38,6 @@ class QLearning(object):
             self.actions
         ))
 
-
         # Fetch states. There are 64 states. Each row index corresponds to the
         # state number, and the value is a list of 3 items indicating the positions
         # of the red, green, blue dumbbells respectively.
@@ -55,15 +54,15 @@ class QLearning(object):
         self.matrix_pub = rospy.Publisher("/q_learning/q_matrix", QMatrix, queue_size=10)
 
         time.sleep(3)
+
+        self.q_matrix = np.zeros([64, 9]) 
+        self.q_matrix_path =  os.path.join(os.path.dirname(__file__), '../output/q_matrix.csv')
+
         self.alpha = 1
         self.gamma = .5
         self.discount_factor = .8
         self.convergence_count = 0
-
-        self.has_saved_matrix = False
-        self.q_matrix = [] 
-        self.q_matrix_path = 'output/q_matrix.csv'
-        self.init_q_matrix()
+        self.convergence_max = 1000
 
         self.curr_state = 0
         self.next_state = 0
@@ -71,24 +70,15 @@ class QLearning(object):
 
         self.do_action()
 
-    def init_q_matrix(self):
-        if self.has_saved_matrix:
-            with open(self.q_matrix_path, newline='') as q_matrix_csv:
-                reader = csv.reader(q_matrix_csv)
-                for row in reader:
-                     #TODO
-                     self.q_matrix.append(list(map(lambda x: int(x), row)))
-        else:
-            self.q_matrix = np.zeros([64, 9])
-
     def save_q_matrix(self):
-        with open(self.q_matrix_path, 'w', newline='') as q_matrix_csv:
+        print('saving matrix...')
+        with open(self.q_matrix_path, 'w+', newline='') as q_matrix_csv:
             writer = csv.writer(q_matrix_csv)
             for row in self.q_matrix:
                 writer.writerow(row)
+        print('matrix saved, press Ctrl+C to exit...')
 
     def do_action(self):
-        print("do_action start")
         options = self.action_matrix[self.curr_state]
         allowed_actions = []
         allowed_action_nums = []
@@ -100,45 +90,34 @@ class QLearning(object):
                allowed_action_nums.append(action_num)
 
         if len(allowed_actions) == 0:
-            # if self.use_saved_matrix: return
             self.curr_state = 0
             return self.do_action()
 
-        # if self.use_saved_matrix etc.
         index = np.random.choice(len(allowed_actions))
         self.next_state = allowed_actions[index]
-        print(len(self.q_matrix))
-        print(self.next_state)
         self.curr_action = allowed_action_nums[index]
 
-        action_info = self.actions[self.curr_action]
         action = RobotMoveDBToBlock()
+        action_info = self.actions[self.curr_action]
         action.robot_db = action_info['dumbbell']
         action.block_id = action_info['block']
         self.action_pub.publish(action)
-        print("do_action end")
 
     def get_reward(self, data):
-        print("get_reward start")
         reward = data.reward
         next_reward = max(self.q_matrix[self.next_state])
         
         current_reward = self.q_matrix[self.curr_state][self.curr_action]
         new_reward = current_reward + self.alpha * (data.reward + self.gamma * next_reward - current_reward) 
-        print("printing reward")
-        print(data.reward)
-        print("printing con")
-        print(self.convergence_count)
         if current_reward == new_reward:
             self.convergence_count += 1
-        elif self.convergence_count == 100:
-            ## self.save_q_matrix()
-            print("@@@@@@@@matrix converged")
-            return
+            if self.convergence_count == self.convergence_max:
+                self.save_q_matrix()
+                return
         else:
             self.convergence_count = 0
             self.q_matrix[self.curr_state][self.curr_action] = new_reward
-
+            
             qm = QMatrix()
             temp = []
             # potentially can cast rows as QMatrixRow more simply temp.append(row)
@@ -151,12 +130,10 @@ class QLearning(object):
             qm.q_matrix = temp
             self.matrix_pub.publish(qm)
 
-        self.current_state = self.next_state
+        self.curr_state = self.next_state
         self.do_action()
-        print("get_reward end")
 
     def run(self):
-        print("run")
         rospy.spin()
 
 if __name__ == "__main__":
