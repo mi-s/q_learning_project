@@ -1,5 +1,7 @@
 # q_learning_project
 
+# Implementation Plan
+
 ## Team Members
 Michael Su, Arjun Voruganti
 
@@ -44,3 +46,14 @@ We will test this by having the robot drive to all possible dumbbells and number
 
 ## Timeline
 By May 5th, we want to have the Q-Learning algorithm implemented and tested.  By May 8th, we want to have the Robot Perception components implemented.  By May 11th, we want to have the Robot Manipulation and Movement components implemented.  We will do the write-up as we go along.  By May 12th, we will have finished the final sections of the write-up.
+
+
+# Writeup
+
+## Objectives description:
+
+The first main task of the project was to design a q-learning algorithm that gives us a Q matrix. When the robot is in a particular state in the environment, the Q matrix dictates the best action for the robot to take next in order to maximize its reward. After that, our task was to get the robot to actually take those actions informed by the Q matrix in order to place the colored dumbbells at their corresponding blocks. 
+
+## High level description:
+
+We used Q-learning to determine which colored dumbbell corresponded to which numbered block. The position of dumbbells in the Gazebo environment represent the different robot states. Additionally, there is a particular action space that contains all of the possible actions that the robot can take to manipulate the environment (i.e. move the dumbbells and enter a new state in environment.) In the Q-matrix, we write the value of the "reward" that would result if the robot took a particular action in a particular state. In order to write these values in the Q matrix, we begin by selecting random actions for the robot to take in the environment. Then, we update the Q matrix with reward values accoridng to which state/action pairs corresponded to "correct" robot choices. Eventually, the Q matrix converges to a set of rewards. At this point, the reinforcement learning is complete, and the robot is informed of which actions to take at particular states that would result in the highest reward.
