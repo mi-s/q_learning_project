@@ -59,8 +59,7 @@ class QLearning(object):
         self.q_matrix_path =  os.path.join(os.path.dirname(__file__), '../output/q_matrix.csv')
 
         self.alpha = 1
-        self.gamma = .5
-        self.discount_factor = .8
+        self.gamma = .65
         self.convergence_count = 0
         self.convergence_max = 1000
 
@@ -104,7 +103,6 @@ class QLearning(object):
         self.action_pub.publish(action)
 
     def get_reward(self, data):
-        reward = data.reward
         next_reward = max(self.q_matrix[self.next_state])
         
         current_reward = self.q_matrix[self.curr_state][self.curr_action]
