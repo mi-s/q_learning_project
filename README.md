@@ -60,29 +60,29 @@ We used Q learning to determine which colored dumbbell corresponded to which num
 
 ## Q learning algorithm description:
 
-### Selecting and executing actions for the robot (or phantom robot) to take
+#### Selecting and executing actions for the robot (or phantom robot) to take
 
-### Updating the Q-matrix
+#### Updating the Q-matrix
 
-### Determining when to stop iterating through the Q-learning algorithm
+#### Determining when to stop iterating through the Q-learning algorithm
 
-### Executing the path most likely to lead to receiving a reward after the Q-matrix has converged on the simulated Turtlebot3 robot
+#### Executing the path most likely to lead to receiving a reward after the Q-matrix has converged on the simulated Turtlebot3 robot
 
 ## Robot perception description:
 
-### Identifying the locations and identities of each of the colored dumbbells
+#### Identifying the locations and identities of each of the colored dumbbells
 
-### Identifying the locations and identities of each of the numbered blocks
+#### Identifying the locations and identities of each of the numbered blocks
 
 ## Robot manipulation/movement description:
 
-### Moving to the right spot in order to pick up a dumbbell
+#### Moving to the right spot in order to pick up a dumbbell
 
-### Picking up the dumbbell
+#### Picking up the dumbbell
 
-### Moving to the desired destination (numbered block) with the dumbbell
+#### Moving to the desired destination (numbered block) with the dumbbell
 
-### Putting the dumbbell back down at the desired destination
+#### Putting the dumbbell back down at the desired destination
 
 ## Challenges:
 
