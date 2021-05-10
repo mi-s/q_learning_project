@@ -38,8 +38,8 @@ class RobotAction(object):
         # initialize cv bridge
         self.bridge = cv_bridge.CvBridge()
 
-        # get ocr pipeline model
-        self.ocr_pipeline = keras_ocr.pipeline.Pipeline()
+        # download pre-trained ocr model
+        self.pipeline = keras_ocr.pipeline.Pipeline()
 
         # initialize data arrays to be added to in the subscriber msgs
         self.image_data = []
