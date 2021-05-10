@@ -62,15 +62,25 @@ We used Q learning to determine which colored dumbbell corresponded to which num
 
 #### Selecting and executing actions for the robot (or phantom robot) to take
 
+Essentially, we instructed the robot to randomly take all available (or possible) actions in the action space. If there were no more actions for the robot to take, we reset the robot's state back to 0 and have the robot continue to take actions. In order to make the phantom robot take the action, we published a `RobotMoveDBToBlock()` message. A reward gets calculated between each of the actions performed (see next section). 
+
 #### Updating the Q-matrix
+
+When the robot takes an action at a particular state, we record the received reward in a cell in the Q matrix for that particular state and particular action (which represent the indexes of the cell in the Q matrix.)
 
 #### Determining when to stop iterating through the Q-learning algorithm
 
+We want to stop iterating through the Q learning algorithm when the Q matrix converges at a particular set of rewards. After each action taken, a reward gets updated in our Q matrix--but if the code tries to write in the *same* reward that was already written in the cell, and if it tries to do this >1000 times, then we consider the Q matrix to have converged.
+
 #### Executing the path most likely to lead to receiving a reward after the Q-matrix has converged on the simulated Turtlebot3 robot
+
+The simulated robot starts at state 0, so we first instruct the robot to take the action that yields the highest reward at state 0. Then, whatever state that action leads us to, we instruct the robot to take the action that yields the highest reward for that state. And so on.
 
 ## Robot perception description:
 
 #### Identifying the locations and identities of each of the colored dumbbells
+
+To figure out which colored dumbbell was where, we defined red/blue/green color ranges, and we used OpenCV to interpret the image data from the robot's sensor and determine which pixels matched those color ranges.
 
 #### Identifying the locations and identities of each of the numbered blocks
 
