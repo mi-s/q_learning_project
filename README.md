@@ -56,4 +56,39 @@ The first main task of the project was to design a q-learning algorithm that giv
 
 ## High level description:
 
-We used Q-learning to determine which colored dumbbell corresponded to which numbered block. The position of dumbbells in the Gazebo environment represent the different robot states. Additionally, there is a particular action space that contains all of the possible actions that the robot can take to manipulate the environment (i.e. move the dumbbells and enter a new state in environment.) In the Q-matrix, we write the value of the "reward" that would result if the robot took a particular action in a particular state. In order to write these values in the Q matrix, we begin by selecting random actions for the robot to take in the environment. Then, we update the Q matrix with reward values accoridng to which state/action pairs corresponded to "correct" robot choices. Eventually, the Q matrix converges to a set of rewards. At this point, the reinforcement learning is complete, and the robot is informed of which actions to take at particular states that would result in the highest reward.
+We used Q learning to determine which colored dumbbell corresponded to which numbered block. The position of dumbbells in the Gazebo environment represent the different robot states. Additionally, there is a particular action space that contains all of the possible actions that the robot can take to manipulate the environment (i.e. move the dumbbells and enter a new state in environment.) In the Q matrix, we write the value of the "reward" that would result if the robot took a particular action in a particular state. In order to write these values in the Q matrix, we begin by selecting random actions for the robot to take in the environment. Then, we update the Q matrix with reward values accoridng to which state/action pairs corresponded to "correct" robot choices. Eventually, the Q matrix converges to a set of rewards. At this point, the reinforcement learning is complete, and the robot is informed of which actions to take at particular states that would result in the highest reward.
+
+## Q learning algorithm description:
+
+### Selecting and executing actions for the robot (or phantom robot) to take
+
+### Updating the Q-matrix
+
+### Determining when to stop iterating through the Q-learning algorithm
+
+### Executing the path most likely to lead to receiving a reward after the Q-matrix has converged on the simulated Turtlebot3 robot
+
+## Robot perception description:
+
+### Identifying the locations and identities of each of the colored dumbbells
+
+### Identifying the locations and identities of each of the numbered blocks
+
+## Robot manipulation/movement description:
+
+### Moving to the right spot in order to pick up a dumbbell
+
+### Picking up the dumbbell
+
+### Moving to the desired destination (numbered block) with the dumbbell
+
+### Putting the dumbbell back down at the desired destination
+
+## Challenges:
+
+## Future work:
+
+## Takeaways:
+
+* few sentences
+* few sentences
