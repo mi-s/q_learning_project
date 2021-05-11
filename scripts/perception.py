@@ -5,7 +5,6 @@ import numpy as np
 import os
 import csv
 import time
-# import math
 
 import keras_ocr.pipeline
 from sensor_msgs.msg import Image
@@ -37,6 +36,8 @@ class Perception(object):
 
 
     def find_color(self, color):
+        """ Given color red, green or blue, return centerpoint of that colored dumbbell, or None if not found. """
+        # Define color ranges for our target color
         lb, ub = None, None
         if color == "red":
             lb = np.array([0,40,45])
@@ -51,8 +52,10 @@ class Perception(object):
             print("error: Perception color not one of red, green, blue")
             return None
 
+        # Find pixels in image matching that color range
         M = cv2.moments(cv2.inRange(self.image_hsv, lb, ub))
         
+        # If pixels were matched, return the centerpoint of the "mask" covering those pixels.
         if M['m00'] > 0:
             x,y = int(M['m10']/M['m00']), int(M['m01']/M['m00'])
             return (x,y)
@@ -61,12 +64,22 @@ class Perception(object):
 
 
     def find_number(self, num):
+        """ Given a number 1, 2 or 3, return the center point of that number in image frame, or None if not found. """
+        # run keras ocr pretrained model on image data
         prediction_group = self.pipeline.recognize([self.image_rgb])[0]
 
         if len(prediction_group) == 0:
             return None
 
-        if num == prediction_group[0][0]:
+        # Handle cases where number is misidentified: "l" instead of "1", etc.
+        misidentified_nums = {
+            '1': ['l','L','I','i'],
+            '2': ['Q'],
+            '3': ['5', '8', 'B', 'b', 'S', 's']
+        }
+
+        # If number found in frame, get the midpoint of the number's "mask" and return center point.
+        if prediction_group[0][0] == num or prediction_group[0][0] in misidentified_nums[num]:
             lb = np.array([0, 0, 0])
             ub = np.array([255, 255, 0]) 
             M = cv2.moments(cv2.inRange(self.image_hsv, lb, ub))
@@ -77,6 +90,7 @@ class Perception(object):
         return None
 
     def run(self):
+        """ run node function. Keep this node consistently running as action.py calls its functions. """
         rospy.spin()
 
 if __name__ == "__main__":
