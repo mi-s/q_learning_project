@@ -55,25 +55,16 @@ class Perception(object):
         
         if M['m00'] > 0:
             x,y = int(M['m10']/M['m00']), int(M['m01']/M['m00'])
-            print("find_color(" + color + "): " + color + " found")
             return (x,y)
-        else:
-            print("find_color(" + color + "): N/A")
 
         return None
 
 
     def find_number(self, num):
-        print("find_number start")
         prediction_group = self.pipeline.recognize([self.image_rgb])[0]
-        print("pipeline called")
 
         if len(prediction_group) == 0:
-            print("length 0")
             return None
-
-        # test with just one [0]
-        print("Perception: " + str(prediction_group[0][0]) + " detected")
 
         if num == prediction_group[0][0]:
             lb = np.array([0, 0, 0])
@@ -81,22 +72,12 @@ class Perception(object):
             M = cv2.moments(cv2.inRange(self.image_hsv, lb, ub))
 
             x,y = int(M['m10']/M['m00']), int(M['m01']/M['m00'])
-            print("find_number(" + num + "): " + num + " found")
             return (x,y) 
-        else:
-            print("find_number(" + num + "): N/A")
             
         return None
 
     def run(self):
-        r = rospy.Rate(3)
-        self.find_color("red")
-        self.find_color("green")
-        self.find_color("blue")
-        self.find_number("1")
-        self.find_number("2")
-        self.find_number("3")
-
+        rospy.spin()
 
 if __name__ == "__main__":
     node = Perception()
