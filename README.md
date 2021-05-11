@@ -80,9 +80,13 @@ The simulated robot starts at state 0, so we first instruct the robot to take th
 
 #### Identifying the locations and identities of each of the colored dumbbells
 
-To figure out which colored dumbbell was where, we defined red/blue/green color ranges, and we used OpenCV to interpret the image data from the robot's sensor and determine which pixels matched those color ranges.
+To figure out which colored dumbbell was where, we defined red/blue/green color ranges, and we used OpenCV to interpret the image data from the robot's sensor and determine which pixels matched those color ranges. Then we either return the center pixel of the mask that covers the colored pixels that got matched, or we return None if the dumbbell is not detected. This is handled in our `get_dumbbell()` function in `perception.py` and gets called by `action.py`. If it returns None, `action.py` turns the robot until the number is in frame.
 
 #### Identifying the locations and identities of each of the numbered blocks
+
+We used the Keras OCR package and its pretrained models for number recognition. We run this model on the robot's image sensor to look for the specified number in the image frame (we also define a black color range like above.) Either our `get_block` function in `perception.py` returns the center point of the specified number on the block, or it returns None if the object is not detected. If it returns None, `action.py` turns the robot until the number is in frame.
+
+We also handled some cases were digits got misidentified as numbers: https://www.ismp.org/resources/misidentification-alphanumeric-symbols
 
 ## Robot manipulation/movement description:
 
