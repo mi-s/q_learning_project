@@ -11,7 +11,7 @@ from sensor_msgs.msg import Image
 
 class Perception(object):
     def __init__(self):
-        rospy.init_node('perception')
+        # rospy.init_node('perception')
 
         # initialize cv bridge
         self.bridge = cv_bridge.CvBridge()
@@ -58,7 +58,8 @@ class Perception(object):
         # If pixels were matched, return the centerpoint of the "mask" covering those pixels.
         if M['m00'] > 0:
             x,y = int(M['m10']/M['m00']), int(M['m01']/M['m00'])
-            return (x,y)
+            h, w, d = self.image_rgb.shape
+            return (x,y,h,w,d)
 
         return None
 
@@ -85,7 +86,8 @@ class Perception(object):
             M = cv2.moments(cv2.inRange(self.image_hsv, lb, ub))
 
             x,y = int(M['m10']/M['m00']), int(M['m01']/M['m00'])
-            return (x,y) 
+            h, w, d = image_rgb.shape
+            return (x,y,h,w,d) 
             
         return None
 
