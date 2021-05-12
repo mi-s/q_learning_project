@@ -52,13 +52,13 @@ By May 5th, we want to have the Q-Learning algorithm implemented and tested.  By
 
 ## Objectives description:
 
-The first main task of the project was to design a q-learning algorithm that gives us a Q matrix. When the robot is in a particular state in the environment, the Q matrix dictates the best action for the robot to take next in order to maximize its reward. After that, our task was to get the robot to actually take those actions informed by the Q matrix in order to place the colored dumbbells at their corresponding blocks. 
+The first main task of the project was to design a Q-Learning algorithm that gives us a Q-matrix. When the robot is in a particular state in the environment, the Q-matrix dictates the best action(s) for the robot to take next in order to maximize its reward and reach the desired end-state in an efficient way. After that, our task was to get the robot to actually take those actions informed by the Q-Matrix in order to place the colored dumbbells at their corresponding blocks.
 
 ## High level description:
 
-We used Q learning to determine which colored dumbbell corresponded to which numbered block. The position of dumbbells in the Gazebo environment represent the different robot states. Additionally, there is a particular action space that contains all of the possible actions that the robot can take to manipulate the environment (i.e. move the dumbbells and enter a new state in environment.) In the Q matrix, we write the value of the "reward" that would result if the robot took a particular action in a particular state. In order to write these values in the Q matrix, we begin by selecting random actions for the robot to take in the environment. Then, we update the Q matrix with reward values accoridng to which state/action pairs corresponded to "correct" robot choices. Eventually, the Q matrix converges to a set of rewards. At this point, the reinforcement learning is complete, and the robot is informed of which actions to take at particular states that would result in the highest reward.
+We used Q-Learning to generate a Q-Matrix which provides the robot a sequence of actions to efficiently place the dumbbells in front of the blocks. The position of dumbbells in the Gazebo environment represents the different robot states. Additionally, there is a particular action space that contains all of the possible actions that the robot can take to manipulate the environment (i.e. move the dumbbells and enter a new state in environment) at any possible state. In the Q-Matrix, we contain reward values for all possible actions in all possible states. In order to write these rewards in the Q-Matrix, we begin by selecting random actions for the robot to take in the environment. Everytime a random action is selected, the algorithm looks at the state that is being moved to by the random action and calculates the average reward of all possible actions from the future state. With this average reward, the algorithm can update the reward value of the current state before the action is performed.  Initially, rewards are only given when all three dumbbells are uniquely placed, so the Q-Matrix is updated from back-to-front.  Whenever this end-state is reached, the state is reset to 0 and the process is repeated until performing the algorithm creates no change over many iterations and the Q-Matrix is determined to be converged.
 
-## Q learning algorithm description:
+## Q-Learning algorithm description:
 
 #### Selecting and executing actions for the robot (or phantom robot) to take
 
@@ -66,15 +66,15 @@ Essentially, we instructed the robot to randomly take all available (or possible
 
 #### Updating the Q-matrix
 
-When the robot takes an action at a particular state, we record the received reward in a cell in the Q matrix for that particular state and particular action (which represent the indexes of the cell in the Q matrix.)
+When the robot chooses a random possible action at a particular state, we update the reward of taking that action in that state using the averaged reward of all possible actions at the state being moved to.
 
 #### Determining when to stop iterating through the Q-learning algorithm
 
-We want to stop iterating through the Q learning algorithm when the Q matrix converges at a particular set of rewards. After each action taken, a reward gets updated in our Q matrix--but if the code tries to write in the *same* reward that was already written in the cell, and if it tries to do this >1000 times, then we consider the Q matrix to have converged.
+We want to stop iterating through the Q learning algorithm when the algorithm no longer is updating the Q-Matrix. After each action taken, a reward gets updated in our Q matrix--but if the code tries to write in the *same* reward that was already written in the cell, and if it tries to do this >1000 times in a row, then we consider the Q matrix to have converged.
 
 #### Executing the path most likely to lead to receiving a reward after the Q-matrix has converged on the simulated Turtlebot3 robot
 
-The simulated robot starts at state 0, so we first instruct the robot to take the action that yields the highest reward at state 0. Then, whatever state that action leads us to, we instruct the robot to take the action that yields the highest reward for that state. And so on.
+The simulated robot starts at state 0, so we first instruct the robot to take any action that yields the highest reward at state 0. Then, whatever state that action leads us to, we instruct the robot to take the action that yields the highest reward for that state. And so on.
 
 ## Robot perception description:
 
@@ -92,7 +92,11 @@ We also handled some cases were digits got misidentified as numbers: https://www
 
 #### Moving to the right spot in order to pick up a dumbbell
 
+We used proportional control in conjunction with the robot's Lidar data to navigate to a position in front of the desired dumbbell. When the dumbbell is in the robot's camera, proportional control allows the robot to slowly drive towards the dumbbell.  When the dumbbell is out of the camera, the robot will rotate in-place until it is back in the camera.
+
 #### Picking up the dumbbell
+
+We used the moveit_commander interface to easily manipulate the robot arm into positions to pick-up the dumbbell and hold the dumbbell in the air.
 
 #### Moving to the desired destination (numbered block) with the dumbbell
 
