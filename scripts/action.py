@@ -99,14 +99,14 @@ class Action(object):
 
     def lift(self):
         # Grasps dumbbell and raises it
-        self.move_group_gripper.go([0.0015, 0.0015], wait=True)
-        self.move_group_arm.go([0, -0.35, 0, -0.4], wait=True)
+        self.move_group_gripper.go([0.004, 0.004], wait=True)
+        self.move_group_arm.go([0, -0.35, 0, 0], wait=True)
         self.arm_dropped = False
 
     def drop(self):
         # Lowers dumbbell and releases it
         self.move_group_arm.go([0, 0.7, 0, -0.85], wait=True)
-        self.move_group_gripper.go([0.01, 0.01], wait=True)
+        self.move_group_gripper.go([0.015, 0.015], wait=True)
         self.arm_dropped = True
 
     def set_velocity(self, linear_vel, angular_vel):
@@ -115,6 +115,12 @@ class Action(object):
         msg.linear.x = linear_vel
         msg.angular.z = angular_vel
         self.cmd_pub.publish(msg)
+
+    def turn(self):
+        # Helper to turn robot around after dumbbell picked up.
+        self.set_velocity(0,0.25)
+        rospy.sleep(8)
+        self.set_velocity(0,0)
 
     def do_db_action(self, db):
         # Performs the given action by picking up dumbbell then placing
@@ -136,6 +142,7 @@ class Action(object):
         if self.distance <= .2:
             self.set_velocity(linear_vel, angular_vel)
             self.lift()
+            self.turn()
         elif self.distance <= .4:
             if not self.arm_dropped:
                 self.set_velocity(linear_vel, angular_vel)
@@ -170,16 +177,52 @@ class Action(object):
 
 
     def do_block_action(self, num):
+        """To be performed after dumbbell is picked up. Find the numbered block
+           for the respective dumbbell and navigate to it, then drop dumbbell."""
+        res = self.p.find_number(num)
+        
+        (cx, cy, h, w, d) = res
+
+        if d == -1 and self.distance > 2:
+            self.set_velocity(0, 0.3)
+            rospy.sleep(1)
+            self.set_velocity(0, 0)
+            rospy.sleep(0.5)
+            self.do_block_action(num)
+            return
+
+        linear_vel = 0
+        angular_vel = 0
+
+        if self.distance <= .6:
+            self.set_velocity(linear_vel, angular_vel)
+            self.drop()
+            self.set_velocity(-0.25,0)
+            rospy.sleep(2)
+            self.set_velocity(0,0)
+        elif self.distance <= 3:
+            err = w/2 - cx
+            angular_vel = min(.25, err * .003)
+            linear_vel = 0.25 * (self.distance - 0.6)
+            self.set_velocity(linear_vel, angular_vel)
+            rospy.sleep(1.5)
+            self.set_velocity(0, 0)
+            rospy.sleep(0.5)
+            self.do_block_action(num)
+        else:
+            self.set_velocity(0.2, angular_vel)
+            rospy.sleep(2)
+            self.set_velocity(0,0)
+            rospy.sleep(0.5)
+            self.do_block_action(num)
+
         return
+
 
     def run(self):
         self.lift()
-        self.do_db_action("green")
-        self.set_velocity(0.25,0.1)
-        rospy.sleep(3)
-        self.set_velocity(0,0)
-        rospy.sleep(2)
-        self.drop()
+        # self.do_db_action("blue")
+        self.do_block_action("2")
 
 
 #        for i in range(len(action_seq)):
