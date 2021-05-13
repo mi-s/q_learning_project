@@ -47,6 +47,11 @@ We will test this by having the robot drive to all possible dumbbells and number
 ## Timeline
 By May 5th, we want to have the Q-Learning algorithm implemented and tested.  By May 8th, we want to have the Robot Perception components implemented.  By May 11th, we want to have the Robot Manipulation and Movement components implemented.  We will do the write-up as we go along.  By May 12th, we will have finished the final sections of the write-up.
 
+# Final result
+
+![gif](https://github.com/mi-s/q_learning_project/blob/master/bags/q_learning.gif)
+
+(Note: GIF is at 4x speed)
 
 # Writeup
 
