@@ -68,7 +68,6 @@ class Perception(object):
         """ Given a number 1, 2 or 3, return the center point of that number in image frame, or None if not found. """
         # run keras ocr pretrained model on image data
         prediction_groups = self.pipeline.recognize([self.image_rgb])
-        print(prediction_groups)
     
         # Handle cases where number is misidentified: "l" instead of "1", etc.
         misidentified_nums = {
@@ -77,20 +76,25 @@ class Perception(object):
             '3': ['5', '8', 'B', 'b', 'S', 's', '31']
         }
 
+        # Define upper and lower HSV bounds for color black (color of digits)
         lb = np.array([0, 0, 0])
         ub = np.array([255, 255, 0]) 
         
         M = cv2.moments(cv2.inRange(self.image_hsv, lb, ub))
 
-        x,y = int(M['m10']/M['m00']), int(M['m01']/M['m00'])
+        # When our target number is NOT in view, we return -1 at the end of our tuple. This encodes that robot must move to find number.
         h, w, d = self.image_rgb.shape
-
+        try:
+            x,y = int(M['m10']/M['m00']), int(M['m01']/M['m00'])
+        except: # Catch float division by zero
+            return(0,0,h,w,-1)
+        
         if prediction_groups == [[]]:
             return (x,y,h,w,-1)
 
+        # If numbers were found in view, check if any of them match our target num and return its coordinate data
         for i,_ in prediction_groups[0]:
             if i == num or i in misidentified_nums[num]:
-                print("matched to ", i)
                 return (x,y,h,w,d)
 
         return (x,y,h,w,-1)

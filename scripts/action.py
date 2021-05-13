@@ -67,6 +67,7 @@ class Action(object):
         dist = data.range_max 
         front = [355,356,357,358,359,0,1,2,3,4]
 
+        # Find closest distance measurement from LiDAR sensor's `ranges` arg
         for i in front:
             if data.ranges[i] < dist:
                 dist = data.ranges[i]
@@ -92,7 +93,7 @@ class Action(object):
 
             db = self.actions[optimal_action]["dumbbell"]
             num = self.actions[optimal_action]["block"]
-            self.action_seq.append((db, num)) 
+            self.action_seq.append((db, str(num))) 
 
             # Update current state by searching through action matrix
             curr_state = np.where(self.action_matrix[curr_state] == optimal_action)[0][0]
@@ -116,17 +117,27 @@ class Action(object):
         msg.angular.z = angular_vel
         self.cmd_pub.publish(msg)
 
-    def turn(self):
+    def turn(self, dir):
         # Helper to turn robot around after dumbbell picked up.
-        self.set_velocity(0,0.25)
+        if dir == "right":
+            vel = -0.175
+        elif dir == "left":
+            vel = 0.25
+        else:
+            print("error: pass 'right' or 'left' direction to turn()")
+            return
+        self.set_velocity(0,vel)
         rospy.sleep(8)
         self.set_velocity(0,0)
 
     def do_db_action(self, db):
         # Performs the given action by picking up dumbbell then placing
         # it at the correct block number
+        
+        # Grab image sensor data from function in `perception.py`
         res = self.p.find_color(db)
         
+        # If dumbbell not in robot's field of view, rotate robot in-place and scan again.
         if res == None:
             self.set_velocity(0, 0.3)
             rospy.sleep(0.5)
@@ -139,35 +150,41 @@ class Action(object):
         linear_vel = 0
         angular_vel = 0
         
+        # If robot is within grabbing distance of target dumbbell, 
+        # close gripper and lift up arm, then end function loop.
         if self.distance <= .2:
             self.set_velocity(linear_vel, angular_vel)
             self.lift()
-            self.turn()
+        # If robot is almost within grabbing distance, lower arm and open grabber,
+        # slowly inch towards the dumbbell handle, and re-call this function.
         elif self.distance <= .4:
             if not self.arm_dropped:
                 self.set_velocity(linear_vel, angular_vel)
                 self.drop()
                 rospy.sleep(0.5)
+            # Adjust linear/angular velocities with proportional control
             linear_vel = .25 * (self.distance - .2)
             err = w/2 - cx
             angular_vel = min(.25, err * .003)
             self.set_velocity(linear_vel, angular_vel)
             rospy.sleep(0.5)
             self.do_db_action(db)
+        # If robot is getting close to grabbing distance, move towards the dumbbell with
+        # proportional control, and re-call this function.
         elif self.distance < 1:
             err = w/2 - cx
             if (err < 5):
                 linear_vel = .25 * (self.distance - .2)
-
             angular_vel = min(.25, err * 0.003)
             self.set_velocity(linear_vel, angular_vel)
             rospy.sleep(0.5)
             self.do_db_action(db)
+        # If robot is far from grabbing distance, move towards the dumbbell with proportional
+        # control again, but it can travel a bit faster. Then re-call this function.
         else:
             err = w/2 - cx
             if (err < 15):
                 linear_vel = .25 * (self.distance - .2)
-
             angular_vel = min(.25, err * 0.003)
             self.set_velocity(linear_vel, angular_vel)
             rospy.sleep(0.5)
@@ -179,13 +196,21 @@ class Action(object):
     def do_block_action(self, num):
         """To be performed after dumbbell is picked up. Find the numbered block
            for the respective dumbbell and navigate to it, then drop dumbbell."""
+        # Grab image sensor data from function in `perception.py`
         res = self.p.find_number(num)
         
         (cx, cy, h, w, d) = res
 
-        if d == -1 and self.distance > 2:
-            self.set_velocity(0, 0.3)
-            rospy.sleep(1)
+        # Handle cases when target number was not found in robot's field of view.
+        # (this is encoded with a d = -1 that comes from `find_number` in `perception.py`)
+        if d == -1 and any([self.distance > 2, cx == 0]):
+            # Rotate robot in-place, and re-call this function to scan for number again.
+            if num == "1":
+                self.set_velocity(0,-0.3)
+                rospy.sleep(1)
+            else:
+                self.set_velocity(0,0.3)
+                rospy.sleep(1)
             self.set_velocity(0, 0)
             rospy.sleep(0.5)
             self.do_block_action(num)
@@ -193,14 +218,20 @@ class Action(object):
 
         linear_vel = 0
         angular_vel = 0
-
-        if self.distance <= .6:
+        
+        # If robot is sufficiently close to target numbered block, drop dumbbell
+        # and end this function loop.
+        if self.distance <= .75:
             self.set_velocity(linear_vel, angular_vel)
             self.drop()
             self.set_velocity(-0.25,0)
             rospy.sleep(2)
             self.set_velocity(0,0)
-        elif self.distance <= 3:
+        # When robot is getting close to target numbered block, the number will no
+        # longer be visible in the robot's field of view (it's too far above). In this case,
+        # we assume the robot is already pointed towards the correct numbered block. So just
+        # move the robot slowly forward using proportional control, and re-call this function.
+        elif self.distance <= 1.5:
             err = w/2 - cx
             angular_vel = min(.25, err * .003)
             linear_vel = 0.25 * (self.distance - 0.6)
@@ -209,6 +240,12 @@ class Action(object):
             self.set_velocity(0, 0)
             rospy.sleep(0.5)
             self.do_block_action(num)
+        # When the robot is far from target numbered block but it's within the image sensor data,
+        # move the robot forward at a constant velocity. Pause after two seconds and re-call this
+        # function. 
+        # (Note that it's possible for the number to disappear from the robot's field
+        # of view as it moves forward. In this case, the robot will turn in-place until it catches
+        # the number again. This was handled in the conditional above.)
         else:
             self.set_velocity(0.2, angular_vel)
             rospy.sleep(2)
@@ -220,15 +257,22 @@ class Action(object):
 
 
     def run(self):
+        """ Run rospy node."""
+        # Lift up arm/gripper upon init. This ensures that arm will not get in the way of
+        # robot's camera/LiDAR sensor.
         self.lift()
-        # self.do_db_action("blue")
-        self.do_block_action("2")
 
+        # For each optimal dumbbell/numbered block pair, call the action sequences to pick up
+        # the specified dumbbell and drop it off at its respective numbered block.
+        for db,num in self.action_seq:
+            self.do_db_action(db)
+            if num == "1":
+                self.turn("right")
+            else:
+                self.turn("left")
+            self.do_block_action(num)
 
-#        for i in range(len(action_seq)):
-#            (db, num) = action_seq[i]
-#            self.do_db_action(db)
-#            self.do_block_action(num)
+        
 
 if __name__ == "__main__":
     node = Action()
