@@ -69,17 +69,25 @@ We used Q-Learning to generate a Q-Matrix which provides the robot a sequence of
 
 Essentially, we instructed the robot to randomly take all available (or possible) actions in the action space. If there were no more actions for the robot to take, we reset the robot's state back to 0 and have the robot continue to take actions. In order to make the phantom robot take the action, we published a `RobotMoveDBToBlock()` message. A reward gets calculated between each of the actions performed (see next section). 
 
+See `do_action()` (line 88) in `q_learning.py`.
+
 #### Updating the Q-matrix
 
 When the robot chooses a random possible action at a particular state, we update the reward of taking that action in that state using the averaged reward of all possible actions at the state being moved to.
+
+See line 145 of `get_reward()` in `q_learning.py`.
 
 #### Determining when to stop iterating through the Q-learning algorithm
 
 We want to stop iterating through the Q learning algorithm when the algorithm no longer is updating the Q-Matrix. After each action taken, a reward gets updated in our Q matrix--but if the code tries to write in the *same* reward that was already written in the cell, and if it tries to do this >1000 times in a row, then we consider the Q matrix to have converged.
 
+See line 139 of `get_reward()` in `q_learning.py`.
+
 #### Executing the path most likely to lead to receiving a reward after the Q-matrix has converged on the simulated Turtlebot3 robot
 
 The simulated robot starts at state 0, so we first instruct the robot to take any action that yields the highest reward at state 0. Then, whatever state that action leads us to, we instruct the robot to take the action that yields the highest reward for that state. And so on.
+
+See `get_actions()` (line 78) in `action.py`.
 
 ## Robot perception description:
 
@@ -87,11 +95,15 @@ The simulated robot starts at state 0, so we first instruct the robot to take an
 
 To figure out which colored dumbbell was where, we defined red/blue/green color ranges, and we used OpenCV to interpret the image data from the robot's sensor and determine which pixels matched those color ranges. Then we either return the center pixel of the mask that covers the colored pixels that got matched, or we return None if the dumbbell is not detected. This is handled in our `get_dumbbell()` function in `perception.py` and gets called by `action.py`. If it returns None, `action.py` turns the robot until the number is in frame.
 
+See `find_color()` (line 38) in `perception.py`.
+
 #### Identifying the locations and identities of each of the numbered blocks
 
-We used the Keras OCR package and its pretrained models for number recognition. We run this model on the robot's image sensor to look for the specified number in the image frame (we also define a black color range like above.) Either our `get_block` function in `perception.py` returns the center point of the specified number on the block, or it returns None if the object is not detected. If it returns None, `action.py` turns the robot until the number is in frame.
+We used the Keras OCR package and its pretrained models for number recognition. We run this model on the robot's image sensor to look for the specified number in the image frame (we also define a black color range like above.) Either our `get_block` function in `perception.py` returns the center point of the specified number on the block, or it returns "-1" if the object is not detected. If it returns -1, `action.py` turns the robot until the number is in frame.
 
-We also handled some cases were digits got misidentified as numbers: https://www.ismp.org/resources/misidentification-alphanumeric-symbols
+We also handled some cases were digits got misidentified as numbers: https://www.ismp.org/resources/misidentification-alphanumeric-symbols (we also used trial and error/print statements to record the misidentifications.)
+
+See `find_number()` (line 67) of `perception.py`.
 
 ## Robot manipulation/movement description:
 
@@ -99,19 +111,36 @@ We also handled some cases were digits got misidentified as numbers: https://www
 
 We used proportional control in conjunction with the robot's Lidar data to navigate to a position in front of the desired dumbbell. When the dumbbell is in the robot's camera, proportional control allows the robot to slowly drive towards the dumbbell.  When the dumbbell is out of the camera, the robot will rotate in-place until it is back in the camera.
 
+See `do_db_action()` (line 133) of `action.py`.
+
 #### Picking up the dumbbell
 
 We used the moveit_commander interface to easily manipulate the robot arm into positions to pick-up the dumbbell and hold the dumbbell in the air.
 
+See `do_db_action()` (line 133) and helper function `lift()` (line 101) of `action.py`.
+
 #### Moving to the desired destination (numbered block) with the dumbbell
+
+We used proportional control in conjunction with the keras_ocr image recognition library to navigate the robot from the dumbbells to the numbered blocks.  After picking up the dumbbell, the robot rotates in place until it can the keras_ocr image recognition identifies that the chosen block is within the camera.  Afterwards, the robot drives a short distance towards the block before checking the camera again for the chosen block.  This process of rotating and driving forward continues until the robot is too close to see the full number in the camera.  At this point, the robot slowly drives up to the block until it is in front of it.
+
+See `do_block_action()` (line 196) of `action.py`.
 
 #### Putting the dumbbell back down at the desired destination
 
+We used the moveit_commander interface to easily manipulate the robot arm into lowering the arm and releasing the gripper.  This is performed once it is determined that the robot is close enough to the desired block.
+
+See `drop()` (line 107) of `action.py`.
+
 ## Challenges:
+
+Our biggest challenges came from navigating the robot to the numbered blocks.  Due to the unique colors of the dumbbells, it was fairly easy to use proportional control to have the robot move precisely in front of the dumbbells.  However, because we had to utilize the relatively slow keras_ocr image recognition library for the numbered blocks, we had to approach the numbered blocks differently from the dumbbells.  The fact that the numbered blocks all share the same color also meant that we could not use color to guide the robot to the desired block.  We overcame these challenges by considering the fixed properties of the map to design an approach which would most likely not work with a different map but consistently works with the given map.
 
 ## Future work:
 
+If we had more time, we would definitely want to improve how our robot navigates to the numbered blocks.  We are content with the implementations of navigation to the dumbbells and the Q-Learning algorithm.  However, we had to exploit fixed characteristics of the environment to solve navigation to numbered blocks due to the challenges listed in the previous section.  Ideally, the navigation to blocks should work even if the dumbbell and block positions were changed.  This is not currently the case, as the navigation only works with the given environment.
+
 ## Takeaways:
 
-* few sentences
-* few sentences
+* Chipping away at the project day-by-day is the best way to ensure the work is done well.  This is a general tip with larger coding projects but it worked well for our group.
+
+* Try to streamline the debugging process as much as possible.  Due to the robot simulation environment being rather slow, as well as the need to debug many times, it saves a lot of time in the long run to optimize the debugging as much as possible.
